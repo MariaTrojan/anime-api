@@ -3,10 +3,7 @@ const { prisma } = require('../db');
 const getAnimesDB = async () => {
     try {
         return await prisma.animes.findMany({
-            include: {
-                estudios: true
-            },
-            orderBy: { titulo: 'asc' }
+            orderBy: { id: 'asc' }
         });
     } catch (err) {
         throw "Erro ao consultar animes: " + err;
@@ -16,13 +13,10 @@ const getAnimesDB = async () => {
 const getAnimePorIdDB = async (id) => {
     try {
         const anime = await prisma.animes.findUnique({
-            where: { id: parseInt(id) },
-            include: {
-                estudios: true
-            }
+            where: { id: parseInt(id) }
         });
         if (!anime) {
-            throw "Nenhum registro encontrado com o id: " + id;
+            throw "Nenhum anime encontrado com o id: " + id;
         }
         return anime;
     } catch (err) {
@@ -38,20 +32,25 @@ const addAnimeDB = async (body) => {
             throw "Título e estúdio são obrigatórios.";
         }
 
-        const epsTotal = total_episodios !== undefined && total_episodios !== null && total_episodios !== ''
+        const estId = parseInt(estudio_id);
+        if (isNaN(estId)) {
+            throw "O identificador do estúdio é inválido.";
+        }
+
+        const eps = total_episodios !== undefined && total_episodios !== null && total_episodios !== ''
             ? parseInt(total_episodios)
             : null;
 
-        if (epsTotal !== null && epsTotal <= 0) {
+        if (eps !== null && eps <= 0) {
             throw "O total de episódios do anime deve ser maior que zero.";
         }
 
         return await prisma.animes.create({
             data: {
-                titulo,
-                genero: genero || null,
-                total_episodios: epsTotal,
-                estudio_id: parseInt(estudio_id)
+                titulo: String(titulo).trim(),
+                genero: genero ? String(genero).trim() : null,
+                total_episodios: eps,
+                estudio_id: estId
             }
         });
     } catch (err) {
@@ -63,22 +62,22 @@ const updateAnimeDB = async (body) => {
     try {
         const { id, titulo, genero, total_episodios, estudio_id } = body;
 
-        // Regra de Negócio: bloquear episódios zerados ou negativos
-        const epsTotal = total_episodios !== undefined && total_episodios !== null && total_episodios !== ''
+        const estId = parseInt(estudio_id);
+        const eps = total_episodios !== undefined && total_episodios !== null && total_episodios !== ''
             ? parseInt(total_episodios)
             : null;
 
-        if (epsTotal !== null && epsTotal <= 0) {
+        if (eps !== null && eps <= 0) {
             throw "O total de episódios do anime deve ser maior que zero.";
         }
 
         return await prisma.animes.update({
             where: { id: parseInt(id) },
             data: {
-                titulo,
-                genero,
-                total_episodios: epsTotal,
-                estudio_id: parseInt(estudio_id)
+                titulo: String(titulo).trim(),
+                genero: genero ? String(genero).trim() : null,
+                total_episodios: eps,
+                estudio_id: estId
             }
         });
     } catch (err) {
@@ -93,6 +92,9 @@ const deleteAnimeDB = async (id) => {
         });
         return "Anime removido com sucesso";
     } catch (err) {
+        if (err.code === 'P2025') {
+            throw `Nenhum anime encontrado com o id ${id}`;
+        }
         throw "Erro ao remover o anime: " + err;
     }
 };
