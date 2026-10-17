@@ -1,6 +1,6 @@
-const { prisma } = require('../db'); // ou require('../prisma') dependendo do nome do seu arquivo
+const { prisma } = require('../db'); 
 
-// 1. READ / Obter todos
+
 const getEstudiosDB = async () => {
     try {
         return await prisma.estudios.findMany({
@@ -11,7 +11,7 @@ const getEstudiosDB = async () => {
     }
 };
 
-// 2. READ / Obter por ID
+
 const getEstudioPorIdDB = async (id) => {
     try {
         const estudio = await prisma.estudios.findUnique({
@@ -26,7 +26,6 @@ const getEstudioPorIdDB = async (id) => {
     }
 };
 
-// 3. CREATE / Inserir com validação de ano
 const addEstudioDB = async (body) => {
     try {
         const { prenome, pais_origem, ano_fundacao } = body;
@@ -52,7 +51,6 @@ const addEstudioDB = async (body) => {
     }
 };
 
-// 4. UPDATE / Atualizar com validação de ano
 const updateEstudioDB = async (body) => {
     try {
         const { id, prenome, pais_origem, ano_fundacao } = body;
@@ -79,7 +77,6 @@ const updateEstudioDB = async (body) => {
     }
 };
 
-// 5. DELETE / Excluir
 const deleteEstudioDB = async (id) => {
     try {
         await prisma.estudios.delete({

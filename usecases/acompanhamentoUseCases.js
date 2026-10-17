@@ -1,100 +1,140 @@
-const { prisma } = require('../db'); // ou '../db'
+const { prisma } = require('../db');
 
-const getAnimesDB = async () => {
+const getAcompanhamentosDB = async () => {
     try {
-        return await prisma.animes.findMany({
+        const dados = await prisma.acompanhamentos.findMany({
             include: {
-                estudios: true
+                animes: true
             },
             orderBy: { id: 'asc' }
         });
+
+        // Achata o objeto para o frontend receber diretamente anime_titulo
+        return dados.map((item) => ({
+            id: item.id,
+            status: item.status,
+            episodios_assistidos: item.episodios_assistidos,
+            nota: item.nota !== null ? Number(item.nota) : null,
+            anime_id: item.anime_id,
+            anime_titulo: item.animes?.titulo || `Anime #${item.anime_id}`
+        }));
     } catch (err) {
-        throw "Erro ao consultar animes: " + err;
+        throw "Erro ao consultar acompanhamentos: " + err;
     }
 };
 
-const getAnimePorIdDB = async (id) => {
+const getAcompanhamentoPorIdDB = async (id) => {
     try {
+        const item = await prisma.acompanhamentos.findUnique({
+            where: { id: parseInt(id) },
+            include: { animes: true }
+        });
+
+        if (!item) {
+            throw "Nenhum registro encontrado com o id: " + id;
+        }
+
+        return {
+            id: item.id,
+            status: item.status,
+            episodios_assistidos: item.episodios_assistidos,
+            nota: item.nota !== null ? Number(item.nota) : null,
+            anime_id: item.anime_id,
+            anime_titulo: item.animes?.titulo || `Anime #${item.anime_id}`
+        };
+    } catch (err) {
+        throw "Erro ao recuperar o acompanhamento: " + err;
+    }
+};
+
+const addAcompanhamentoDB = async (body) => {
+    try {
+        const { status, episodios_assistidos, nota, anime_id } = body;
+
+        // Regra: Bloquear episódios negativos
+        const eps = parseInt(episodios_assistidos) || 0;
+        if (eps < 0) {
+            throw "A quantidade de episódios assistidos não pode ser negativa.";
+        }
+
+        const animeIdNum = parseInt(anime_id);
+        if (!animeIdNum) {
+            throw "O identificador do anime é obrigatório.";
+        }
+
+        // Regra: Não ultrapassar total de episódios do anime
         const anime = await prisma.animes.findUnique({
-            where: { id: parseInt(id) },
-            include: {
-                estudios: true
-            }
+            where: { id: animeIdNum }
         });
-        if (!anime) throw "Nenhum registro encontrado com o id: " + id;
-        return anime;
-    } catch (err) {
-        throw "Erro ao recuperar o anime: " + err;
-    }
-};
 
-const addAnimeDB = async (body) => {
-    try {
-        const { titulo, genero, total_episodios, estudio_id } = body;
-
-        if (!titulo || !estudio_id) {
-            throw "Título e estúdio são obrigatórios.";
+        if (anime && anime.total_episodios && eps > anime.total_episodios) {
+            throw `Episódios assistidos (${eps}) excede o total do anime (${anime.total_episodios}).`;
         }
 
-        const eps = total_episodios ? parseInt(total_episodios) : null;
-        if (eps !== null && eps <= 0) {
-            throw "O total de episódios deve ser maior que zero.";
-        }
-
-        return await prisma.animes.create({
+        return await prisma.acompanhamentos.create({
             data: {
-                titulo: String(titulo).trim(),
-                genero: genero ? String(genero).trim() : null,
-                total_episodios: eps,
-                estudio_id: parseInt(estudio_id)
+                status: status || 'Assistindo',
+                episodios_assistidos: eps,
+                nota: nota !== undefined && nota !== null && nota !== '' ? parseFloat(nota) : null,
+                anime_id: animeIdNum
             }
         });
     } catch (err) {
-        throw "Erro ao inserir o anime: " + err;
+        throw "Erro ao inserir o acompanhamento: " + err;
     }
 };
 
-const updateAnimeDB = async (body) => {
+const updateAcompanhamentoDB = async (body) => {
     try {
-        const { id, titulo, genero, total_episodios, estudio_id } = body;
+        const { id, status, episodios_assistidos, nota, anime_id } = body;
 
-        const eps = total_episodios ? parseInt(total_episodios) : null;
-        if (eps !== null && eps <= 0) {
-            throw "O total de episódios deve ser maior que zero.";
+        const eps = parseInt(episodios_assistidos) || 0;
+        if (eps < 0) {
+            throw "A quantidade de episódios assistidos não pode ser negativa.";
         }
 
-        return await prisma.animes.update({
+        const animeIdNum = parseInt(anime_id);
+
+        const anime = await prisma.animes.findUnique({
+            where: { id: animeIdNum }
+        });
+
+        if (anime && anime.total_episodios && eps > anime.total_episodios) {
+            throw `Episódios assistidos (${eps}) excede o total do anime (${anime.total_episodios}).`;
+        }
+
+        return await prisma.acompanhamentos.update({
             where: { id: parseInt(id) },
             data: {
-                titulo: String(titulo).trim(),
-                genero: genero ? String(genero).trim() : null,
-                total_episodios: eps,
-                estudio_id: parseInt(estudio_id)
+                status,
+                episodios_assistidos: eps,
+                nota: nota !== undefined && nota !== null && nota !== '' ? parseFloat(nota) : null,
+                anime_id: animeIdNum
             }
         });
     } catch (err) {
-        throw "Erro ao alterar o anime: " + err;
+        throw "Erro ao alterar o acompanhamento: " + err;
     }
 };
 
-const deleteAnimeDB = async (id) => {
+const deleteAcompanhamentoDB = async (id) => {
     try {
-        await prisma.animes.delete({
+        await prisma.acompanhamentos.delete({
             where: { id: parseInt(id) }
         });
-        return "Anime removido com sucesso";
+        return "Acompanhamento removido com sucesso";
     } catch (err) {
         if (err.code === 'P2025') {
-            throw `Nenhum anime encontrado com o id ${id}`;
+            throw `Nenhum registro encontrado com o id ${id} para ser removido`;
         }
-        throw "Erro ao remover o anime: " + err;
+        throw "Erro ao remover o acompanhamento: " + err;
     }
 };
 
 module.exports = {
-    getAnimesDB,
-    getAnimePorIdDB,
-    addAnimeDB,
-    updateAnimeDB,
-    deleteAnimeDB
+    getAcompanhamentosDB,
+    getAcompanhamentoPorIdDB,
+    addAcompanhamentoDB,
+    updateAcompanhamentoDB,
+    deleteAcompanhamentoDB
 };
