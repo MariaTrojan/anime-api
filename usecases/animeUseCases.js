@@ -34,7 +34,10 @@ const addAnimeDB = async (body) => {
     try {
         const { titulo, genero, total_episodios, estudio_id } = body;
 
-        // Regra de Negócio: bloquear episódios zerados ou negativos
+        if (!titulo || !estudio_id) {
+            throw "Título e estúdio são obrigatórios.";
+        }
+
         const epsTotal = total_episodios !== undefined && total_episodios !== null && total_episodios !== ''
             ? parseInt(total_episodios)
             : null;
@@ -46,7 +49,7 @@ const addAnimeDB = async (body) => {
         return await prisma.animes.create({
             data: {
                 titulo,
-                genero,
+                genero: genero || null,
                 total_episodios: epsTotal,
                 estudio_id: parseInt(estudio_id)
             }

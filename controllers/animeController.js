@@ -11,7 +11,7 @@ const getAnimes = async (request, response) => {
         .then(data => response.status(200).json(data))
         .catch(err => response.status(400).json({
             status: 'error',
-            message: 'Erro ao consultar os animes: ' + err
+            message: err.message || err
         }));
 };
 
@@ -20,7 +20,7 @@ const getAnimePorId = async (request, response) => {
         .then(data => response.status(200).json(data))
         .catch(err => response.status(400).json({
             status: 'error',
-            message: err
+            message: err.message || err
         }));
 };
 
@@ -33,7 +33,7 @@ const addAnime = async (request, response) => {
         }))
         .catch(err => response.status(400).json({
             status: 'error',
-            message: err
+            message: err.message || err
         }));
 };
 
@@ -46,7 +46,7 @@ const updateAnime = async (request, response) => {
         }))
         .catch(err => response.status(400).json({
             status: 'error',
-            message: err
+            message: err.message || err
         }));
 };
 
@@ -58,7 +58,7 @@ const deleteAnime = async (request, response) => {
         }))
         .catch(err => response.status(400).json({
             status: 'error',
-            message: err
+            message: err.message || err
         }));
 };
 
