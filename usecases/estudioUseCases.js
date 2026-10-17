@@ -1,5 +1,6 @@
-const { prisma } = require('../db');
+const { prisma } = require('../db'); // ou require('../prisma') dependendo do nome do seu arquivo
 
+// 1. READ / Obter todos
 const getEstudiosDB = async () => {
     try {
         return await prisma.estudios.findMany({
@@ -10,6 +11,7 @@ const getEstudiosDB = async () => {
     }
 };
 
+// 2. READ / Obter por ID
 const getEstudioPorIdDB = async (id) => {
     try {
         const estudio = await prisma.estudios.findUnique({
@@ -24,14 +26,25 @@ const getEstudioPorIdDB = async (id) => {
     }
 };
 
+// 3. CREATE / Inserir com validação de ano
 const addEstudioDB = async (body) => {
     try {
         const { prenome, pais_origem, ano_fundacao } = body;
+        const anoAtual = new Date().getFullYear();
+        let ano = null;
+
+        if (ano_fundacao) {
+            ano = parseInt(ano_fundacao);
+            if (ano < 1900 || ano > anoAtual) {
+                throw `Ano de fundação inválido. Deve ser entre 1900 e ${anoAtual}.`;
+            }
+        }
+
         return await prisma.estudios.create({
             data: {
                 prenome,
-                pais_origem,
-                ano_fundacao: ano_fundacao ? parseInt(ano_fundacao) : null
+                pais_origem: pais_origem || 'Japão',
+                ano_fundacao: ano
             }
         });
     } catch (err) {
@@ -39,15 +52,26 @@ const addEstudioDB = async (body) => {
     }
 };
 
+// 4. UPDATE / Atualizar com validação de ano
 const updateEstudioDB = async (body) => {
     try {
         const { id, prenome, pais_origem, ano_fundacao } = body;
+        const anoAtual = new Date().getFullYear();
+        let ano = null;
+
+        if (ano_fundacao) {
+            ano = parseInt(ano_fundacao);
+            if (ano < 1900 || ano > anoAtual) {
+                throw `Ano de fundação inválido. Deve ser entre 1900 e ${anoAtual}.`;
+            }
+        }
+
         return await prisma.estudios.update({
             where: { id: parseInt(id) },
             data: {
                 prenome,
-                pais_origem,
-                ano_fundacao: ano_fundacao ? parseInt(ano_fundacao) : null
+                pais_origem: pais_origem || 'Japão',
+                ano_fundacao: ano
             }
         });
     } catch (err) {
@@ -55,6 +79,7 @@ const updateEstudioDB = async (body) => {
     }
 };
 
+// 5. DELETE / Excluir
 const deleteEstudioDB = async (id) => {
     try {
         await prisma.estudios.delete({

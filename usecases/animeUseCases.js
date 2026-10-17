@@ -33,11 +33,21 @@ const getAnimePorIdDB = async (id) => {
 const addAnimeDB = async (body) => {
     try {
         const { titulo, genero, total_episodios, estudio_id } = body;
+
+        // Regra de Negócio: bloquear episódios zerados ou negativos
+        const epsTotal = total_episodios !== undefined && total_episodios !== null && total_episodios !== ''
+            ? parseInt(total_episodios)
+            : null;
+
+        if (epsTotal !== null && epsTotal <= 0) {
+            throw "O total de episódios do anime deve ser maior que zero.";
+        }
+
         return await prisma.animes.create({
             data: {
                 titulo,
                 genero,
-                total_episodios: total_episodios ? parseInt(total_episodios) : null,
+                total_episodios: epsTotal,
                 estudio_id: parseInt(estudio_id)
             }
         });
@@ -49,12 +59,22 @@ const addAnimeDB = async (body) => {
 const updateAnimeDB = async (body) => {
     try {
         const { id, titulo, genero, total_episodios, estudio_id } = body;
+
+        // Regra de Negócio: bloquear episódios zerados ou negativos
+        const epsTotal = total_episodios !== undefined && total_episodios !== null && total_episodios !== ''
+            ? parseInt(total_episodios)
+            : null;
+
+        if (epsTotal !== null && epsTotal <= 0) {
+            throw "O total de episódios do anime deve ser maior que zero.";
+        }
+
         return await prisma.animes.update({
             where: { id: parseInt(id) },
             data: {
                 titulo,
                 genero,
-                total_episodios: total_episodios ? parseInt(total_episodios) : null,
+                total_episodios: epsTotal,
                 estudio_id: parseInt(estudio_id)
             }
         });

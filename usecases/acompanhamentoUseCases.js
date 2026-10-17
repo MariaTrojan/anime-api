@@ -65,14 +65,31 @@ const getAcompanhamentoPorIdDB = async (id) => {
 const addAcompanhamentoDB = async (body) => {
     try {
         const { status, episodios_assistidos, nota, anime_id } = body;
-        const results = await pool.query(
-            `INSERT INTO acompanhamentos (status, episodios_assistidos, nota, anime_id)
-             VALUES ($1, $2, $3, $4)
-             RETURNING id, status, episodios_assistidos, nota, anime_id`,
-            [status, episodios_assistidos, nota, anime_id]
-        );
-        const acomp = results.rows[0];
-        return new Acompanhamento(acomp.id, acomp.status, acomp.episodios_assistidos, acomp.nota, acomp.anime_id);
+
+        // 1. Bloquear episódios negativos
+        const eps = parseInt(episodios_assistidos) || 0;
+        if (eps < 0) {
+            throw "A quantidade de episódios assistidos não pode ser negativa.";
+        }
+
+        // 2. Bloquear episódios além do total usando o Prisma
+        const anime = await prisma.animes.findUnique({
+            where: { id: parseInt(anime_id) }
+        });
+
+        if (anime && anime.total_episodios && eps > anime.total_episodios) {
+            throw `Episódios assistidos (${eps}) excede o total do anime (${anime.total_episodios}).`;
+        }
+
+        // 3. Salvar via Prisma ORM
+        return await prisma.acompanhamentos.create({
+            data: {
+                status,
+                episodios_assistidos: eps,
+                nota: nota !== undefined && nota !== null && nota !== '' ? parseFloat(nota) : null,
+                anime_id: parseInt(anime_id)
+            }
+        });
     } catch (err) {
         throw "Erro ao inserir o acompanhamento: " + err;
     }
@@ -81,18 +98,31 @@ const addAcompanhamentoDB = async (body) => {
 const updateAcompanhamentoDB = async (body) => {
     try {
         const { id, status, episodios_assistidos, nota, anime_id } = body;
-        const results = await pool.query(
-            `UPDATE acompanhamentos
-             SET status = $2, episodios_assistidos = $3, nota = $4, anime_id = $5
-             WHERE id = $1
-             RETURNING id, status, episodios_assistidos, nota, anime_id`,
-            [id, status, episodios_assistidos, nota, anime_id]
-        );
-        if (results.rowCount === 0) {
-            throw `Nenhum registro encontrado com o id ${id} para ser alterado`;
+
+        // 1. Trava contra episódios negativos
+        const eps = parseInt(episodios_assistidos) || 0;
+        if (eps < 0) {
+            throw "A quantidade de episódios assistidos não pode ser negativa.";
         }
-        const acomp = results.rows[0];
-        return new Acompanhamento(acomp.id, acomp.status, acomp.episodios_assistidos, acomp.nota, acomp.anime_id);
+
+        // 2. Trava contra episódios maiores que o total do anime via Prisma
+        const anime = await prisma.animes.findUnique({
+            where: { id: parseInt(anime_id) }
+        });
+        if (anime && anime.total_episodios && eps > anime.total_episodios) {
+            throw `Episódios assistidos (${eps}) excede o total do anime (${anime.total_episodios}).`;
+        }
+
+        // 3. Atualização via Prisma ORM
+        return await prisma.acompanhamentos.update({
+            where: { id: parseInt(id) },
+            data: {
+                status,
+                episodios_assistidos: eps,
+                nota: nota !== undefined && nota !== null && nota !== '' ? parseFloat(nota) : null,
+                anime_id: parseInt(anime_id)
+            }
+        });
     } catch (err) {
         throw "Erro ao alterar o acompanhamento: " + err;
     }
@@ -100,12 +130,14 @@ const updateAcompanhamentoDB = async (body) => {
 
 const deleteAcompanhamentoDB = async (id) => {
     try {
-        const results = await pool.query('DELETE FROM acompanhamentos WHERE id = $1', [id]);
-        if (results.rowCount === 0) {
-            throw `Nenhum registro encontrado com o id ${id} para ser removido`;
-        }
+        await prisma.acompanhamentos.delete({
+            where: { id: parseInt(id) }
+        });
         return "Acompanhamento removido com sucesso";
     } catch (err) {
+        if (err.code === 'P2025') {
+            throw `Nenhum registro encontrado com o id ${id} para ser removido`;
+        }
         throw "Erro ao remover o acompanhamento: " + err;
     }
 };
