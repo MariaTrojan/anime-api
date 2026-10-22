@@ -9,7 +9,7 @@ const getAcompanhamentosDB = async () => {
             orderBy: { id: 'asc' }
         });
 
-        // Achata o objeto para o frontend receber diretamente anime_titulo
+        // formata os dados retornados pelo Prisma antes de enviar em formato JSON para o Frontend.
         return dados.map((item) => ({
             id: item.id,
             status: item.status,
@@ -27,7 +27,7 @@ const getAcompanhamentoPorIdDB = async (id) => {
     try {
         const item = await prisma.acompanhamentos.findUnique({
             where: { id: parseInt(id) },
-            include: { animes: true }
+            include: { animes: true } // com include não precisa ficar usando JOIN
         });
 
         if (!item) {
@@ -51,7 +51,6 @@ const addAcompanhamentoDB = async (body) => {
     try {
         const { status, episodios_assistidos, nota, anime_id } = body;
 
-        // Regra: Bloquear episódios negativos
         const eps = parseInt(episodios_assistidos) || 0;
         if (eps < 0) {
             throw "A quantidade de episódios assistidos não pode ser negativa.";
@@ -62,7 +61,6 @@ const addAcompanhamentoDB = async (body) => {
             throw "O identificador do anime é obrigatório.";
         }
 
-        // Regra: Não ultrapassar total de episódios do anime
         const anime = await prisma.animes.findUnique({
             where: { id: animeIdNum }
         });
