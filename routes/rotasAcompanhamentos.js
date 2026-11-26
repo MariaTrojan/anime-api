@@ -7,15 +7,18 @@ const {
     getAcompanhamentoPorId
 } = require('../controllers/acompanhamentoController');
 
+const { verificaJWT, verificaAdmin } = require('../controllers/segurancaController');
+
 const rotasAcompanhamentos = new Router();
 
 rotasAcompanhamentos.route('/acompanhamento')
-   .get(getAcompanhamentos)
-   .post(addAcompanhamento)
-   .put(updateAcompanhamento);
+   .get(verificaJWT, getAcompanhamentos)
+   .post(verificaJWT, addAcompanhamento)
+   .put(verificaJWT, updateAcompanhamento);
 
 rotasAcompanhamentos.route('/acompanhamento/:id')
-   .get(getAcompanhamentoPorId)
-   .delete(deleteAcompanhamento);
+   .get(verificaJWT, getAcompanhamentoPorId)
+   .delete(verificaJWT, verificaAdmin, deleteAcompanhamento);
 
 module.exports = { rotasAcompanhamentos };
+

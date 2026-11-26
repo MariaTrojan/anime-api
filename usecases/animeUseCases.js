@@ -92,7 +92,7 @@ const deleteAnimeDB = async (id) => {
         });
         return "Anime removido com sucesso";
     } catch (err) {
-        if (err.code === 'P2025') {
+        if (err.code === 'P2025') { // erro do prisma quando não encontra o registro no banco
             throw `Nenhum anime encontrado com o id ${id}`;
         }
         throw "Erro ao remover o anime: " + err;

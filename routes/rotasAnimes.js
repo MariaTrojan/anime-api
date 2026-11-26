@@ -7,15 +7,17 @@ const {
     getAnimePorId
 } = require('../controllers/animeController');
 
+const { verificaJWT, verificaAdmin } = require('../controllers/segurancaController');
+
 const rotasAnimes = new Router();
 
 rotasAnimes.route('/anime')
-   .get(getAnimes)
-   .post(addAnime)
-   .put(updateAnime);
+    .get(verificaJWT, getAnimes)
+    .post(verificaJWT, addAnime)
+    .put(verificaJWT, updateAnime);
 
 rotasAnimes.route('/anime/:id')
-   .get(getAnimePorId)
-   .delete(deleteAnime);
+    .get(verificaJWT, getAnimePorId)
+    .delete(verificaJWT, verificaAdmin, deleteAnime);
 
 module.exports = { rotasAnimes };

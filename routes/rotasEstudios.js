@@ -7,15 +7,17 @@ const {
     getEstudioPorId
 } = require('../controllers/estudioController');
 
+const { verificaJWT, verificaAdmin } = require('../controllers/segurancaController');
+
 const rotasEstudios = new Router();
 
 rotasEstudios.route('/estudio')
-   .get(getEstudios)
-   .post(addEstudio)
-   .put(updateEstudio);
+    .get(verificaJWT, getEstudios)
+    .post(verificaJWT, addEstudio)
+    .put(verificaJWT, updateEstudio);
 
-rotasEstudios.route('/estudio/:id') 
-   .get(getEstudioPorId)
-   .delete(deleteEstudio);
+rotasEstudios.route('/estudio/:id')
+    .get(verificaJWT, getEstudioPorId)
+    .delete(verificaJWT, verificaAdmin, deleteEstudio);
 
 module.exports = { rotasEstudios };
